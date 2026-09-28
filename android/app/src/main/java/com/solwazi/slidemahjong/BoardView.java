@@ -37,7 +37,7 @@ public class BoardView extends View {
     private static final long FIRST_CLEAR_DELAY_MS = 500;
     // Pause between individual pair clears: matches vanish one pair at a
     // time so the player can follow each one.
-    private static final long PAIR_CLEAR_DELAY_MS = 3000;
+    private static final long PAIR_CLEAR_DELAY_MS = 1500;
     private static final long WIN_DIALOG_DELAY_MS = 300;
     // How long the "shuffling" notice stays up before the reshuffle happens.
     private static final long RESHUFFLE_NOTICE_DELAY_MS = 1600;
