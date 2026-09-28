@@ -6,4 +6,5 @@
     <color name="text_primary">#FFFFFF</color>
     <color name="accent">#3B82F6</color>
     <color name="hint">#FBBF24</color>
+    <color name="button_inactive">#334155</color>
 </resources>

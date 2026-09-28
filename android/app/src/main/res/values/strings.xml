@@ -5,6 +5,9 @@
     <string name="tiles_remaining">Tiles Remaining: %1$d</string>
     <string name="new_board">New Board</string>
     <string name="hint">Hint</string>
+    <string name="easy">Easy</string>
+    <string name="medium">Medium</string>
+    <string name="hard">Hard</string>
     <string name="win_title">🎉 Board Cleared!</string>
     <string name="win_message">Nice job!</string>
     <string name="win_ok">OK</string>

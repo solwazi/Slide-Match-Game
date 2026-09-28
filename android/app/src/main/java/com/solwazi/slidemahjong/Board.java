@@ -10,7 +10,9 @@ import java.util.Set;
 /**
  * UI-agnostic game logic for Daily Slide Mahjong.
  *
- * <p>A 6x6 board holding 24 tiles (12 mahjong symbol pairs). A tile is
+ * <p>A 6x6 board holding a difficulty-dependent number of tiles
+ * (see {@link Difficulty}): 12 mahjong symbol pairs on easy, plus extra
+ * duplicate pairs on medium and hard. A tile is
  * dragged in one of the four directions; the contiguous block of tiles ahead
  * of it slides along, but the move is only committed when at least one of
  * the moved tiles is part of a line-of-sight match (two equal symbols with
@@ -28,6 +30,34 @@ public class Board {
     public static final int GRID_SIZE = 6;
     public static final int CELL_COUNT = GRID_SIZE * GRID_SIZE;
     private static final int MAX_SOLVE_ATTEMPTS = 500;
+
+    /** Difficulty level: harder levels pack more tiles onto the board. */
+    public enum Difficulty {
+        /** 24 tiles (12 pairs): roomy board, relaxed play. */
+        EASY(24),
+        /** 30 tiles: 3 extra duplicate pairs, noticeably more crowded. */
+        MEDIUM(30),
+        /** 34 tiles: 5 extra duplicate pairs, very little room to maneuver. */
+        HARD(34);
+
+        /** Total tiles dealt at this difficulty; always even and <= 36. */
+        public final int tileCount;
+
+        Difficulty(int tileCount) {
+            this.tileCount = tileCount;
+        }
+    }
+
+    private Difficulty difficulty = Difficulty.EASY;
+
+    /** Current difficulty; applies to the next dealt board. */
+    public Difficulty getDifficulty() {
+        return difficulty;
+    }
+
+    public void setDifficulty(Difficulty difficulty) {
+        this.difficulty = difficulty;
+    }
 
     /** The 12 mahjong symbols, in palette order (matches the original game). */
     public static final String[] SYMBOLS = {
@@ -103,8 +133,18 @@ public class Board {
             cells[i] = null;
         }
 
-        List<Tile> deck = new ArrayList<>(SYMBOLS.length * 2);
+        List<Tile> deck = new ArrayList<>(difficulty.tileCount);
         for (int s = 0; s < SYMBOLS.length; s++) {
+            int color = Tile.parseColor(SYMBOL_COLOR_HEX[s]);
+            deck.add(new Tile(SYMBOLS[s], color));
+            deck.add(new Tile(SYMBOLS[s], color));
+        }
+        // Harder levels add extra pairs of random symbols (duplicates
+        // allowed). Pairs keep every symbol count even so the board stays
+        // fully clearable.
+        int extraPairs = (difficulty.tileCount - deck.size()) / 2;
+        for (int i = 0; i < extraPairs; i++) {
+            int s = random.nextInt(SYMBOLS.length);
             int color = Tile.parseColor(SYMBOL_COLOR_HEX[s]);
             deck.add(new Tile(SYMBOLS[s], color));
             deck.add(new Tile(SYMBOLS[s], color));

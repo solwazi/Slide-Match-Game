@@ -165,6 +165,15 @@ public class BoardView extends View {
         this.board = board;
     }
 
+    /** Switches difficulty and immediately deals a fresh board at that level. */
+    public void setDifficulty(Board.Difficulty difficulty) {
+        if (board == null) {
+            return;
+        }
+        board.setDifficulty(difficulty);
+        newBoard();
+    }
+
     public void setBoardListener(BoardListener listener) {
         this.listener = listener;
     }
