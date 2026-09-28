@@ -310,6 +310,65 @@ public class Board {
     }
 
     /**
+     * Gathers line-of-sight pairs as disjoint (non-overlapping) pairs: each
+     * tile appears in at most one pair.
+     *
+     * <p>On harder difficulties duplicate symbols are allowed, so three or
+     * more of a kind can line up in a row or column. The chained scan in
+     * {@link #collectMatches} would then mark all three, and clearing them
+     * would remove an odd number of tiles — eventually stranding a single
+     * tile with no possible match. Pairing greedily guarantees every clear
+     * wave removes an even number of tiles, so the board always stays
+     * fully clearable. (On easy this can't happen: at most two copies of
+     * each symbol exist, so chained matches are impossible there.)
+     */
+    public static List<int[]> collectPairs(Tile[] board) {
+        List<int[]> pairs = new ArrayList<>();
+        boolean[] used = new boolean[board.length];
+
+        for (int r = 0; r < GRID_SIZE; r++) {
+            int lastTileIndex = -1;
+            for (int c = 0; c < GRID_SIZE; c++) {
+                int index = r * GRID_SIZE + c;
+                if (board[index] == null) {
+                    continue;
+                }
+                if (lastTileIndex != -1
+                        && !used[lastTileIndex] && !used[index]
+                        && board[index].symbol.equals(board[lastTileIndex].symbol)) {
+                    pairs.add(new int[]{lastTileIndex, index});
+                    used[lastTileIndex] = true;
+                    used[index] = true;
+                    lastTileIndex = -1;
+                } else {
+                    lastTileIndex = index;
+                }
+            }
+        }
+        for (int c = 0; c < GRID_SIZE; c++) {
+            int lastTileIndex = -1;
+            for (int r = 0; r < GRID_SIZE; r++) {
+                int index = r * GRID_SIZE + c;
+                if (board[index] == null) {
+                    continue;
+                }
+                if (lastTileIndex != -1
+                        && !used[lastTileIndex] && !used[index]
+                        && board[index].symbol.equals(board[lastTileIndex].symbol)) {
+                    pairs.add(new int[]{lastTileIndex, index});
+                    used[lastTileIndex] = true;
+                    used[index] = true;
+                    lastTileIndex = -1;
+                } else {
+                    lastTileIndex = index;
+                }
+            }
+        }
+
+        return pairs;
+    }
+
+    /**
      * Strict legality check: after sliding {@code blockIndices} by
      * {@code distance} on {@code test}, is at least one of the moved
      * tiles (at its new position) part of a line-of-sight match?
@@ -359,7 +418,9 @@ public class Board {
     }
 
     /**
-     * Removes every line-of-sight pair on the board.
+     * Removes every line-of-sight pair on the board. Pairs are cleared as
+     * disjoint pairs (see {@link #collectPairs}) so a wave never removes an
+     * odd number of tiles.
      *
      * <p>Never reshuffles on its own: when no legal move remains, the caller
      * (the UI) is responsible for telling the player and reshuffling.
@@ -368,11 +429,12 @@ public class Board {
      *         again after a short delay for chain reactions)
      */
     public boolean checkMatches() {
-        Set<Integer> toRemove = collectMatches(cells);
+        List<int[]> pairs = collectPairs(cells);
 
-        boolean matched = !toRemove.isEmpty();
-        for (int index : toRemove) {
-            cells[index] = null;
+        boolean matched = !pairs.isEmpty();
+        for (int[] pair : pairs) {
+            cells[pair[0]] = null;
+            cells[pair[1]] = null;
         }
         return matched;
     }
