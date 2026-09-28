@@ -1,75 +1,55 @@
-# Daily Slide Mahjong — Android App
+# Slide Match Game
 
-A Java port of the **Daily Slide Mahjong** web game (originally a single HTML file).
-Swipe tiles to slide them; matching mahjong pairs in line of sight clear automatically.
+A slide-and-match puzzle game. Slide rows and columns of tiles to line up
+matching pairs and clear the board.
 
-- Package: `com.solwazi.slidemahjong`
-- minSdk 24 · targetSdk 34 · Java 11
-- Android Gradle Plugin 8.5.2 · Gradle 8.7 (via the included wrapper)
-- No third-party dependencies — pure Android framework + Java.
+## How to Play
 
-## Project layout
+**Goal:** Clear the board by eliminating pairs of matching tiles.
 
-```
-android/
-├── settings.gradle
-├── build.gradle                 # project-level
-├── gradlew / gradlew.bat        # Gradle wrapper
-├── gradle/wrapper/
-└── app/
-    ├── build.gradle             # applicationId com.solwazi.slidemahjong
-    └── src/main/
-        ├── AndroidManifest.xml
-        ├── java/com/solwazi/slidemahjong/
-        │   ├── Tile.java        # symbol glyph + face color (immutable)
-        │   ├── Board.java       # all game rules; no Android dependencies
-        │   ├── BoardView.java   # custom View: draws the board, handles drags
-        │   └── MainActivity.java# layout wiring, tile counter, win dialog
-        └── res/
-            ├── layout/activity_main.xml
-            └── values/strings.xml, colors.xml, themes.xml
-```
+**Sliding tiles:** Drag any row or column. The tiles in that line slide
+together as a block in the direction you drag — release to commit the move.
+A longer drag moves the block further.
 
-`Board.java` is deliberately UI-agnostic (only `java.util`), so the rules can be
-unit-tested on a plain JVM. `BoardView` only renders and forwards input.
+**Matching:** Two tiles with the same symbol form a match when they can
+"see" each other: same row or column with no tiles between them. After
+every slide, matches clear automatically, one pair at a time with a short
+pause (about 1.5 seconds) between each.
 
-## How to play
+**Legal moves:** A slide only counts if at least one of the tiles you moved
+ends up part of a match. Just moving a blocker out of the way to expose an
+untouched match doesn't count.
 
-- **Drag a tile** up/down/left/right: the contiguous block of tiles ahead of it
-  slides along. The move only counts if it creates a line-of-sight match —
-  two equal symbols with no other tile between them in a row or column.
-- **Matching pairs clear automatically**, including chain reactions.
-- **Hint** highlights one legal move for 1.5 seconds (amber outlines).
-- **New Board** deals a fresh solvable board.
-- The board is reshuffled automatically whenever no legal move remains.
+**Starting matches:** A new board sometimes already contains matches. When
+it does, you'll be invited to tap two matching tiles to clear them yourself
+before you start sliding — tap one tile to select it, then tap its match.
+The Hint button will point at a waiting pair for you.
 
-## Open in Android Studio
+**Difficulty levels:** Pick Easy, Medium, or Hard before or during play.
+Changing difficulty deals a fresh board immediately.
 
-1. Android Studio → **File → Open…** → select this `android/` folder.
-2. Let Gradle sync (first run downloads the Gradle 8.7 distribution and the
-   Android Gradle Plugin — needs internet).
-3. Press **Run ▶** on an emulator or a physical device with USB debugging on.
+- **Easy** — 24 tiles; every symbol appears exactly twice.
+- **Medium** — 30 tiles; symbols may repeat.
+- **Hard** — 34 tiles; symbols may repeat.
 
-Requires Android Studio Hedgehog (2023.1.1) or newer; AGP 8.5 needs JDK 17,
-which Android Studio bundles by default.
+On Medium and Hard, three or more of a kind can line up — pairs always
+clear two at a time, so the board stays fully clearable.
 
-## Build the APK
+**Hints:** The Hint button highlights a legal slide (or a waiting pair at
+the start of a game). If no legal move exists, the board reshuffles instead.
 
-**Build → Build Bundle(s) / APK(s) → Build APK(s)**.
+**Stuck?** When no legal slide remains, you'll see
+"No moves left — shuffling the board…" and the tiles reshuffle into a
+solvable layout.
 
-The debug APK lands at:
+**Winning:** Clear every tile to win the round.
 
-```
-app/build/outputs/apk/debug/app-debug.apk
-```
+## Building (Android)
 
-Install it on a device with `adb install app-debug.apk`.
+Open the `android/` folder in Android Studio and run the app on an
+emulator or a physical device.
 
-## Notes
+## Branches
 
-- **Mahjong glyphs:** tiles use the Unicode Mahjong Tiles block (🀀–🀤).
-  Most modern Android devices ship a font covering it; very old devices may
-  show tofu boxes for some tiles.
-- **Dark theme** (`#1E293B` background, `#0F172A` board) matches the web game.
-- If the Gradle wrapper jar is missing in your checkout, Android Studio will
-  offer to generate/download it on first sync.
+- `convert-game-java-android` — the Android version (this branch).
+- `convert-game-java-swing` — the Java Swing desktop version.
