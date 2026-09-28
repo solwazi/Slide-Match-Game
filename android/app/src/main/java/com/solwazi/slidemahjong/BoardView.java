@@ -32,11 +32,12 @@ public class BoardView extends View {
     }
 
     private static final long HINT_DURATION_MS = 1500;
-    // Beat after a slide lands before the first matches clear, so the
+    // Beat after a slide lands before the first pair clears, so the
     // player can see what matched.
     private static final long FIRST_CLEAR_DELAY_MS = 500;
-    // Pause between chain-reaction clear waves.
-    private static final long MATCH_CHAIN_DELAY_MS = 650;
+    // Pause between individual pair clears: matches vanish one pair at a
+    // time so the player can follow each one.
+    private static final long PAIR_CLEAR_DELAY_MS = 3000;
     private static final long WIN_DIALOG_DELAY_MS = 300;
     // How long the "shuffling" notice stays up before the reshuffle happens.
     private static final long RESHUFFLE_NOTICE_DELAY_MS = 1600;
@@ -96,16 +97,10 @@ public class BoardView extends View {
             afterBoardChanged();
         }
     };
-    private final Runnable firstClearRunnable = new Runnable() {
+    private final Runnable pairClearRunnable = new Runnable() {
         @Override
         public void run() {
-            firstClear();
-        }
-    };
-    private final Runnable chainCheckRunnable = new Runnable() {
-        @Override
-        public void run() {
-            chainCheck();
+            clearNextPair();
         }
     };
 
@@ -184,8 +179,7 @@ public class BoardView extends View {
             return;
         }
         handler.removeCallbacks(clearHintRunnable);
-        handler.removeCallbacks(firstClearRunnable);
-        handler.removeCallbacks(chainCheckRunnable);
+        handler.removeCallbacks(pairClearRunnable);
         handler.removeCallbacks(reshuffleRunnable);
         reshufflePending = false;
         activeHint = null;
@@ -358,41 +352,33 @@ public class BoardView extends View {
         }
     }
 
-    /** Runs after a committed slide: pauses, then clears matches in waves. */
+    /** Runs after a committed slide: pauses, then clears one pair at a time. */
     private void afterMove() {
         handler.removeCallbacks(clearHintRunnable);
         activeHint = null;
         // Let the player see the landed tiles before anything vanishes.
-        handler.postDelayed(firstClearRunnable, FIRST_CLEAR_DELAY_MS);
+        handler.postDelayed(pairClearRunnable, FIRST_CLEAR_DELAY_MS);
     }
 
-    private void firstClear() {
+    /**
+     * Clears a single pair, then schedules the next one after a pause so
+     * each match vanishes on its own. Chain reactions resolve naturally:
+     * clearing a pair can open line of sight for the next one.
+     */
+    private void clearNextPair() {
         if (board == null) {
             return;
         }
-        boolean matched = board.checkMatches();
+        boolean cleared = board.clearOnePair();
         afterBoardChanged();
-        if (matched) {
-            handler.postDelayed(chainCheckRunnable, MATCH_CHAIN_DELAY_MS);
+        if (cleared) {
+            handler.postDelayed(pairClearRunnable, PAIR_CLEAR_DELAY_MS);
         } else {
             afterClearsSettled();
         }
     }
 
-    private void chainCheck() {
-        if (board == null) {
-            return;
-        }
-        boolean matched = board.checkMatches();
-        afterBoardChanged();
-        if (matched) {
-            handler.postDelayed(chainCheckRunnable, MATCH_CHAIN_DELAY_MS);
-        } else {
-            afterClearsSettled();
-        }
-    }
-
-    /** Called once all match waves are done: reshuffle with notice when stuck. */
+    /** Called once all pairs are cleared: reshuffle with notice when stuck. */
     private void afterClearsSettled() {
         if (board.remainingTiles() > 0 && board.findHint() == null) {
             notifyReshuffling();

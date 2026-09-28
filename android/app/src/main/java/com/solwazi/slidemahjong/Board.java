@@ -440,6 +440,22 @@ public class Board {
     }
 
     /**
+     * Removes a single line-of-sight pair from the board, if one exists.
+     *
+     * @return true when a pair was removed
+     */
+    public boolean clearOnePair() {
+        List<int[]> pairs = collectPairs(cells);
+        if (pairs.isEmpty()) {
+            return false;
+        }
+        int[] pair = pairs.get(0);
+        cells[pair[0]] = null;
+        cells[pair[1]] = null;
+        return true;
+    }
+
+    /**
      * Guarantees the board never has zero legal moves: while no slide can
      * put a moved tile into a match, the tiles are redistributed
      * (up to 500 attempts).
