@@ -37,7 +37,7 @@ public class BoardView extends View {
     private static final long FIRST_CLEAR_DELAY_MS = 500;
     // Pause between individual pair clears: matches vanish one pair at a
     // time so the player can follow each one.
-    private static final long PAIR_CLEAR_DELAY_MS = 1500;
+    private static final long PAIR_CLEAR_DELAY_MS = 3000;
     private static final long WIN_DIALOG_DELAY_MS = 300;
     // How long the "shuffling" notice stays up before the reshuffle happens.
     private static final long RESHUFFLE_NOTICE_DELAY_MS = 1600;
@@ -73,6 +73,12 @@ public class BoardView extends View {
     private float downY;
     private int downIndex = -1;
 
+    // Tap-to-clear: a fresh deal sometimes already holds matches. While
+    // true, taps select tiles and a valid second tap clears the pair,
+    // instead of the first slide sweeping those matches away.
+    private boolean tapToClearMode = false;
+    private int selectedTapIndex = -1;
+
     // Active hint highlight.
     private Board.Hint activeHint;
     private final Runnable clearHintRunnable = new Runnable() {
@@ -95,6 +101,7 @@ public class BoardView extends View {
             }
             board.reshuffle();
             afterBoardChanged();
+            maybeEnterTapMode();
         }
     };
     private final Runnable pairClearRunnable = new Runnable() {
@@ -185,11 +192,69 @@ public class BoardView extends View {
         activeHint = null;
         board.newBoard();
         afterBoardChanged();
+        maybeEnterTapMode();
+    }
+
+    /**
+     * A fresh deal (or reshuffle) sometimes already holds matches. When it
+     * does, let the player tap the pairs away instead of sweeping them in
+     * the first slide's clear wave.
+     */
+    private void maybeEnterTapMode() {
+        selectedTapIndex = -1;
+        tapToClearMode = board != null && board.hasPairs();
+        if (tapToClearMode) {
+            Toast.makeText(getContext(), "Tap two matching tiles to clear them",
+                    Toast.LENGTH_SHORT).show();
+        }
+        invalidate();
+    }
+
+    /** Tap-to-clear: select tiles; a valid second tap clears the pair. */
+    private void handleTap(int index) {
+        if (board == null || board.getTile(index) == null) {
+            selectedTapIndex = -1;
+            invalidate();
+            return;
+        }
+        if (selectedTapIndex == -1) {
+            selectedTapIndex = index;
+        } else if (selectedTapIndex == index) {
+            selectedTapIndex = -1; // tapping the same tile deselects it
+        } else if (board.clearPair(selectedTapIndex, index)) {
+            selectedTapIndex = -1;
+            afterBoardChanged();
+            if (!board.hasPairs()) {
+                // Opening matches are gone: back to sliding. If no slide
+                // exists either, offer a reshuffle instead of stranding.
+                tapToClearMode = false;
+                if (board.remainingTiles() > 0 && board.findHint() == null) {
+                    notifyReshuffling();
+                } else {
+                    checkWin();
+                }
+            } else {
+                checkWin();
+            }
+        } else {
+            // Not a pair: move the selection to the newly tapped tile.
+            selectedTapIndex = index;
+        }
+        invalidate();
     }
 
     /** Highlights one legal move, or reshuffles (with notice) if none exists. */
     public void showHint() {
         if (board == null) {
+            return;
+        }
+        if (tapToClearMode) {
+            // Point at one tile of an available pair; the player taps its partner.
+            List<int[]> pairs = board.findPairs();
+            if (!pairs.isEmpty()) {
+                selectedTapIndex = pairs.get(0)[0];
+                invalidate();
+            }
             return;
         }
         Board.Hint hint = board.findHint();
@@ -290,6 +355,11 @@ public class BoardView extends View {
                 canvas.drawRoundRect(tmpRect, tileCorner, tileCorner, hintTargetPaint);
             }
         }
+
+        if (selectedTapIndex >= 0 && board.getTile(selectedTapIndex) != null) {
+            cellRect(selectedTapIndex, tmpRect);
+            canvas.drawRoundRect(tmpRect, tileCorner, tileCorner, hintSourcePaint);
+        }
     }
 
     @Override
@@ -322,6 +392,9 @@ public class BoardView extends View {
                 float absDx = Math.abs(dx);
                 float absDy = Math.abs(dy);
                 if (Math.max(absDx, absDy) < touchSlopPx) {
+                    if (tapToClearMode) {
+                        handleTap(startIndex);
+                    }
                     break; // treated as a tap, not a drag
                 }
                 boolean horizontal = absDx > absDy;
@@ -334,6 +407,9 @@ public class BoardView extends View {
                 float dragPx = horizontal ? absDx : absDy;
                 int requestedDistance = Math.max(1, Math.round(dragPx / cellPitch));
                 if (board.trySlide(startIndex, step, horizontal, requestedDistance)) {
+                    // Sliding ends tap-to-clear: the clear wave sweeps the rest.
+                    tapToClearMode = false;
+                    selectedTapIndex = -1;
                     afterMove();
                 }
                 break;

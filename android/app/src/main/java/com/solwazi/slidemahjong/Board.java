@@ -456,6 +456,66 @@ public class Board {
     }
 
     /**
+     * All current line-of-sight pairs on the board, as disjoint pairs.
+     */
+    public List<int[]> findPairs() {
+        return collectPairs(cells);
+    }
+
+    /** True when at least one line-of-sight pair sits on the board. */
+    public boolean hasPairs() {
+        return !findPairs().isEmpty();
+    }
+
+    /**
+     * True when the two cells hold the same symbol with nothing between them
+     * in their shared row or column: a valid tap-to-clear pair.
+     */
+    public boolean isPair(int a, int b) {
+        if (a == b || a < 0 || b < 0 || a >= CELL_COUNT || b >= CELL_COUNT) {
+            return false;
+        }
+        Tile ta = cells[a];
+        Tile tb = cells[b];
+        if (ta == null || tb == null || !ta.symbol.equals(tb.symbol)) {
+            return false;
+        }
+        int ar = a / GRID_SIZE, ac = a % GRID_SIZE;
+        int br = b / GRID_SIZE, bc = b % GRID_SIZE;
+        if (ar == br) {
+            for (int c = Math.min(ac, bc) + 1; c < Math.max(ac, bc); c++) {
+                if (cells[ar * GRID_SIZE + c] != null) {
+                    return false;
+                }
+            }
+            return true;
+        }
+        if (ac == bc) {
+            for (int r = Math.min(ar, br) + 1; r < Math.max(ar, br); r++) {
+                if (cells[r * GRID_SIZE + ac] != null) {
+                    return false;
+                }
+            }
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * Removes the two cells when they form a valid pair.
+     *
+     * @return true when a pair was removed
+     */
+    public boolean clearPair(int a, int b) {
+        if (!isPair(a, b)) {
+            return false;
+        }
+        cells[a] = null;
+        cells[b] = null;
+        return true;
+    }
+
+    /**
      * Guarantees the board never has zero legal moves: while no slide can
      * put a moved tile into a match, the tiles are redistributed
      * (up to 500 attempts).
