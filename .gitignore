@@ -15,3 +15,5 @@ github-client.sh
 stdout
 out/
 
+android/build.gradle
+android/gradle/wrapper/gradle-wrapper.properties
